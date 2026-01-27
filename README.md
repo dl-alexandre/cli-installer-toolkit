@@ -14,6 +14,7 @@ A universal installer script for popular CLI tools. Installs to `~/.local/bin` b
 | **gdrive** | Google Drive CLI | [dl-alexandre/Google-Drive-CLI](https://github.com/dl-alexandre/Google-Drive-CLI) |
 | **slack** | Slack CLI | [slackapi/slack-cli](https://github.com/slackapi/slack-cli) |
 | **cursor** | AI Code Editor | [cursor.com](https://cursor.com) |
+| **opencode** | AI IDE (Desktop App) | [anomalyco/opencode](https://github.com/anomalyco/opencode) |
 | **npx** | Node.js (npm + npx) | [nodejs/node](https://github.com/nodejs/node) |
 
 ## Quick Start
@@ -48,6 +49,7 @@ TOOLS:
   gdrive           Google Drive CLI
   slack            Slack CLI
   cursor           Cursor AI Code Editor
+  opencode         OpenCode AI IDE
   npx              Node.js (npm + npx)
 ```
 

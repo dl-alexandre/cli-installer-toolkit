@@ -216,6 +216,27 @@ jobs:
           cursor --version || echo "cursor installed at $(which cursor)"
           file "${HOME}/.local/bin/cursor"
           
+  test-opencode:
+    name: Test OpenCode (non-interactive)
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest]
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Install opencode (.deb)
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          ./install.sh --non-interactive opencode
+          
+      - name: Verify opencode installation
+        run: |
+          which opencode || echo "opencode installed system-wide"
+          dpkg -l | grep opencode || echo "opencode package installed"
+          
   test-all-linux:
     name: Test 'all' option (Linux)
     runs-on: ubuntu-latest

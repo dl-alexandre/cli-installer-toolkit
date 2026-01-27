@@ -9,7 +9,7 @@ INTERACTIVE="${CURSOR_INTERACTIVE:-true}"
 usage() {
   cat <<'EOF'
 Usage:
-  ./install.sh [--prefix PATH] [--non-interactive] [all | gh aws jira gdrive slack cursor npx]...
+  ./install.sh [--prefix PATH] [--non-interactive] [all | gh aws jira gdrive slack cursor opencode npx]...
 
 Examples:
   ./install.sh all
@@ -534,6 +534,130 @@ install_cursor() {
   esac
 }
 
+install_opencode_deb() {
+  local arch="$1"
+  echo "Installing OpenCode .deb package..."
+  
+  local asset_name="opencode-desktop-linux-${arch}.deb"
+  local url="$(github_asset_url "anomalyco" "opencode" "linux" "$arch" ".deb" "opencode-desktop")"
+  local tmpfile
+  tmpfile="$(mktemp -t opencode.XXXXXX).deb"
+  
+  download_to "$url" "$tmpfile"
+  
+  echo "Running: sudo dpkg -i \"$tmpfile\""
+  sudo dpkg -i "$tmpfile"
+  rm -f "$tmpfile"
+  
+  echo "Installed: opencode (system-wide via .deb)"
+}
+
+install_opencode_rpm() {
+  local arch="$1"
+  echo "Installing OpenCode .rpm package..."
+  
+  local url="$(github_asset_url "anomalyco" "opencode" "linux" "$arch" ".rpm" "opencode-desktop")"
+  local tmpfile
+  tmpfile="$(mktemp -t opencode.XXXXXX).rpm"
+  
+  download_to "$url" "$tmpfile"
+  
+  echo "Running: sudo rpm -i \"$tmpfile\""
+  sudo rpm -i "$tmpfile"
+  rm -f "$tmpfile"
+  
+  echo "Installed: opencode (system-wide via .rpm)"
+}
+
+install_opencode_dmg() {
+  local arch="$1"
+  echo "Downloading OpenCode for macOS..."
+  
+  local url="$(github_asset_url "anomalyco" "opencode" "darwin" "$arch" ".dmg" "opencode-desktop")"
+  local tmpfile="${TMPDIR:-/tmp}/OpenCode.dmg"
+  
+  echo "Downloading from: $url"
+  if ! download_to "$url" "$tmpfile"; then
+    echo "Error: Failed to download OpenCode" >&2
+    echo "You may need to download manually from: https://github.com/anomalyco/opencode/releases" >&2
+    return 1
+  fi
+  
+  echo ""
+  echo "Downloaded to: $tmpfile"
+  echo ""
+  echo "To complete installation:"
+  echo "  1. Open: open \"$tmpfile\""
+  echo "  2. Drag OpenCode.app to your Applications folder"
+  echo ""
+  
+  if $INTERACTIVE; then
+    read -p "Open DMG now? [y/N]: " open_now
+    if [[ "$open_now" =~ ^[Yy]$ ]]; then
+      open "$tmpfile"
+    fi
+  fi
+}
+
+install_opencode() {
+  local os="$1" arch="$2"
+  echo "Installing OpenCode..."
+  
+  case "$os" in
+    linux)
+      if $INTERACTIVE; then
+        echo ""
+        echo "OpenCode installation options for Linux:"
+        echo "  1) .deb package (requires sudo, Ubuntu/Debian, recommended)"
+        echo "  2) .rpm package (requires sudo, Fedora/RHEL)"
+        echo ""
+        read -p "Choose installation method [1-2]: " choice
+        
+        case "$choice" in
+          1) install_opencode_deb "$arch" ;;
+          2) install_opencode_rpm "$arch" ;;
+          *) echo "Invalid choice. Using .deb."; install_opencode_deb "$arch" ;;
+        esac
+      else
+        local method="${OPENCODE_INSTALL_METHOD:-deb}"
+        case "$method" in
+          rpm) install_opencode_rpm "$arch" ;;
+          *) install_opencode_deb "$arch" ;;
+        esac
+      fi
+      ;;
+      
+    darwin)
+      if $INTERACTIVE; then
+        echo ""
+        echo "OpenCode for macOS requires manual installation:"
+        echo "  1. Download will save a .dmg file"
+        echo "  2. You'll need to open it and drag to Applications"
+        echo ""
+        read -p "Continue? [y/N]: " confirm
+        
+        if [[ "$confirm" =~ ^[Yy]$ ]]; then
+          install_opencode_dmg "$arch"
+        else
+          echo "OpenCode installation cancelled."
+          return 1
+        fi
+      else
+        echo "OpenCode for macOS requires interactive installation."
+        echo "Run without --non-interactive flag, or download manually from:"
+        echo "  https://github.com/anomalyco/opencode/releases"
+        return 1
+      fi
+      ;;
+      
+    *)
+      echo "OpenCode installation for Windows is not supported by this script."
+      echo "Please download from: https://github.com/anomalyco/opencode/releases"
+      return 1
+      ;;
+  esac
+}
+
 main() {
   local args=()
   while [[ $# -gt 0 ]]; do
@@ -584,17 +708,19 @@ main() {
     install_gdrive_cli "$os" "$arch"
     install_slack "$os" "$arch"
     install_cursor "$os" "$arch"
+    install_opencode "$os" "$arch"
     install_npx "$os" "$arch"
   else
     for a in "${args[@]}"; do
       case "$a" in
-        gh)     install_gh "$os" "$arch" ;;
-        aws)    install_aws "$os" "$arch" ;;
-        jira)   install_jira "$os" "$arch" ;;
-        gdrive) install_gdrive_cli "$os" "$arch" ;;
-        slack)  install_slack "$os" "$arch" ;;
-        cursor) install_cursor "$os" "$arch" ;;
-        npx)    install_npx "$os" "$arch" ;;
+        gh)       install_gh "$os" "$arch" ;;
+        aws)      install_aws "$os" "$arch" ;;
+        jira)     install_jira "$os" "$arch" ;;
+        gdrive)   install_gdrive_cli "$os" "$arch" ;;
+        slack)    install_slack "$os" "$arch" ;;
+        cursor)   install_cursor "$os" "$arch" ;;
+        opencode) install_opencode "$os" "$arch" ;;
+        npx)      install_npx "$os" "$arch" ;;
         *)
           echo "Unknown component: $a" >&2
           usage
