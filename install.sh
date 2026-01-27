@@ -546,7 +546,12 @@ install_opencode_deb() {
   download_to "$url" "$tmpfile"
   
   echo "Running: sudo dpkg -i \"$tmpfile\""
-  sudo dpkg -i "$tmpfile"
+  sudo dpkg -i "$tmpfile" || true
+  
+  echo "Fixing dependencies..."
+  sudo apt-get update -qq
+  sudo apt-get install -f -y
+  
   rm -f "$tmpfile"
   
   echo "Installed: opencode (system-wide via .deb)"
