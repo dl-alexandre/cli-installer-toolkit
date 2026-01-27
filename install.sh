@@ -57,8 +57,9 @@ github_asset_url() {
   local api="https://api.github.com/repos/${owner}/${repo}/releases/latest"
   
   local json
-  if [[ -n "${GH_TOKEN:-}" ]]; then
-    json="$(curl -fsSL -H "Authorization: Bearer ${GH_TOKEN}" -H "Accept: application/vnd.github+json" "${api}")"
+  local auth_token="${GH_TOKEN:-${GITHUB_TOKEN:-}}"
+  if [[ -n "$auth_token" ]]; then
+    json="$(curl -fsSL -H "Authorization: Bearer ${auth_token}" -H "Accept: application/vnd.github+json" "${api}")"
   else
     json="$(curl -fsSL -H "Accept: application/vnd.github+json" "${api}")"
   fi
@@ -94,7 +95,7 @@ try:
         if arch == "arm64":
             arch_ok = any(t in lname for t in ["arm64", "aarch64"])
         elif arch == "amd64":
-            arch_ok = any(t in lname for t in ["amd64", "x86_64"])
+            arch_ok = any(t in lname for t in ["amd64", "x86_64", "64-bit"])
         if not arch_ok:
             continue
 

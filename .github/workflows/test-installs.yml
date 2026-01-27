@@ -21,6 +21,8 @@ jobs:
       - uses: actions/checkout@v4
       
       - name: Install gh
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           export PREFIX="${HOME}/.local/bin"
           mkdir -p "${PREFIX}"
@@ -42,6 +44,8 @@ jobs:
       - uses: actions/checkout@v4
       
       - name: Install jira
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           export PREFIX="${HOME}/.local/bin"
           mkdir -p "${PREFIX}"
@@ -63,6 +67,8 @@ jobs:
       - uses: actions/checkout@v4
       
       - name: Install gdrive
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           export PREFIX="${HOME}/.local/bin"
           mkdir -p "${PREFIX}"
@@ -84,6 +90,8 @@ jobs:
       - uses: actions/checkout@v4
       
       - name: Install slack
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           export PREFIX="${HOME}/.local/bin"
           mkdir -p "${PREFIX}"
@@ -129,6 +137,8 @@ jobs:
       - uses: actions/checkout@v4
       
       - name: Install gh, jira, and slack together
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           export PREFIX="${HOME}/.local/bin"
           mkdir -p "${PREFIX}"
@@ -148,6 +158,8 @@ jobs:
       - uses: actions/checkout@v4
       
       - name: Install all CLIs
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           export PREFIX="${HOME}/.local/bin"
           mkdir -p "${PREFIX}"
