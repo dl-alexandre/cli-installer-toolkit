@@ -16,7 +16,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, macos-latest]
+        os: [ubuntu-latest, macos-latest, windows-latest]
     steps:
       - uses: actions/checkout@v4
       
@@ -27,11 +27,13 @@ jobs:
           export PREFIX="${HOME}/.local/bin"
           mkdir -p "${PREFIX}"
           ./install.sh gh
+        shell: bash
           
       - name: Verify gh installation
         run: |
           export PATH="${HOME}/.local/bin:${PATH}"
           gh --version
+        shell: bash
           
   test-jira:
     name: Test jira-cli
@@ -39,7 +41,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, macos-latest]
+        os: [ubuntu-latest, macos-latest, windows-latest]
     steps:
       - uses: actions/checkout@v4
       
@@ -50,11 +52,13 @@ jobs:
           export PREFIX="${HOME}/.local/bin"
           mkdir -p "${PREFIX}"
           ./install.sh jira
+        shell: bash
           
       - name: Verify jira installation
         run: |
           export PATH="${HOME}/.local/bin:${PATH}"
           jira version
+        shell: bash
           
   test-gdrive:
     name: Test gdrive CLI
@@ -62,7 +66,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, macos-latest]
+        os: [ubuntu-latest, macos-latest, windows-latest]
     steps:
       - uses: actions/checkout@v4
       
@@ -73,11 +77,13 @@ jobs:
           export PREFIX="${HOME}/.local/bin"
           mkdir -p "${PREFIX}"
           ./install.sh gdrive
+        shell: bash
           
       - name: Verify gdrive installation
         run: |
           export PATH="${HOME}/.local/bin:${PATH}"
           gdrive version || gdrive --version || echo "gdrive installed at $(which gdrive)"
+        shell: bash
           
   test-slack:
     name: Test Slack CLI
@@ -85,7 +91,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, macos-latest]
+        os: [ubuntu-latest, macos-latest, windows-latest]
     steps:
       - uses: actions/checkout@v4
       
@@ -96,11 +102,13 @@ jobs:
           export PREFIX="${HOME}/.local/bin"
           mkdir -p "${PREFIX}"
           ./install.sh slack
+        shell: bash
           
       - name: Verify slack installation
         run: |
           export PATH="${HOME}/.local/bin:${PATH}"
           slack version || slack --version
+        shell: bash
 
   test-npx:
     name: Test npx (Node.js LTS)
@@ -108,7 +116,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, macos-latest]
+        os: [ubuntu-latest, macos-latest, windows-latest]
     steps:
       - uses: actions/checkout@v4
       
@@ -117,6 +125,7 @@ jobs:
           export PREFIX="${HOME}/.local/bin"
           mkdir -p "${PREFIX}"
           ./install.sh npx
+        shell: bash
           
       - name: Verify npx installation
         run: |
@@ -124,6 +133,7 @@ jobs:
           node --version
           npm --version
           npx --version
+        shell: bash
           
   test-aws-linux:
     name: Test AWS CLI (Linux)
@@ -153,9 +163,32 @@ jobs:
           echo "AWS CLI on macOS requires sudo for .pkg installation"
           echo "Skipping automated test - see README for manual installation instructions"
           
+  test-aws-windows:
+    name: Test AWS CLI (Windows)
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Install aws
+        run: |
+          export PREFIX="${HOME}/.local/bin"
+          mkdir -p "${PREFIX}"
+          ./install.sh aws
+        shell: bash
+        
+      - name: Verify aws installation
+        run: |
+          export PATH="${HOME}/.local/bin:${PATH}"
+          aws --version
+        shell: bash
+          
   test-multiple:
     name: Test multiple installations
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
     steps:
       - uses: actions/checkout@v4
       
@@ -166,6 +199,7 @@ jobs:
           export PREFIX="${HOME}/.local/bin"
           mkdir -p "${PREFIX}"
           ./install.sh gh jira slack npx
+        shell: bash
           
       - name: Verify all installations
         run: |
@@ -174,6 +208,7 @@ jobs:
           jira version
           slack version || slack --version
           npx --version
+        shell: bash
           
   test-skills-listing:
     name: Test skills listing with npx
@@ -261,3 +296,29 @@ jobs:
           slack version || slack --version
           cursor --version || echo "cursor installed"
           npx --version
+          
+  test-all-windows:
+    name: Test 'all' option (Windows)
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Install all CLIs
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          export PREFIX="${HOME}/.local/bin"
+          mkdir -p "${PREFIX}"
+          ./install.sh all
+        shell: bash
+        
+      - name: Verify installations
+        run: |
+          export PATH="${HOME}/.local/bin:${PATH}"
+          gh --version
+          jira version
+          aws --version
+          gdrive version || gdrive --version || echo "gdrive installed"
+          slack version || slack --version
+          npx --version
+        shell: bash

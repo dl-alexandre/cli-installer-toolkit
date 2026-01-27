@@ -32,6 +32,7 @@ detect_os() {
   case "$(uname -s)" in
     Darwin) echo "darwin" ;;
     Linux)  echo "linux" ;;
+    MINGW*|MSYS*|CYGWIN*) echo "windows" ;;
     *) echo "Unsupported OS: $(uname -s)" >&2; exit 1 ;;
   esac
 }

@@ -187,8 +187,11 @@ export CURSOR_INSTALL_METHOD=deb
 | Linux | ARM64 (aarch64) | ✅ Fully supported |
 | macOS | x86_64 (Intel) | ✅ Fully supported* |
 | macOS | ARM64 (Apple Silicon) | ✅ Fully supported* |
+| Windows | x86_64 (amd64) | ✅ Fully supported** |
 
-**AWS CLI on macOS requires `sudo` for the official `.pkg` installer. All other tools install without elevated privileges.*
+**AWS CLI on macOS requires `sudo` for the official `.pkg` installer.*
+
+***Windows requires Git Bash, WSL, or similar Unix-like shell environment.*
 
 ## Requirements
 
@@ -199,6 +202,8 @@ export CURSOR_INSTALL_METHOD=deb
 - `install` (typically pre-installed)
 
 All requirements are standard on modern Linux/macOS systems.
+
+**Windows users:** Install [Git for Windows](https://git-scm.com/download/win) to get Git Bash, which includes all required tools. Alternatively, use [WSL (Windows Subsystem for Linux)](https://docs.microsoft.com/en-us/windows/wsl/install).
 
 ## How It Works
 
