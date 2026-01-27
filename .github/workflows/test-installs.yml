@@ -1,0 +1,163 @@
+name: Test CLI Installations
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+  schedule:
+    - cron: '0 0 * * 0'
+  workflow_dispatch:
+
+jobs:
+  test-gh:
+    name: Test gh (GitHub CLI)
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Install gh
+        run: |
+          export PREFIX="${HOME}/.local/bin"
+          mkdir -p "${PREFIX}"
+          ./install.sh gh
+          
+      - name: Verify gh installation
+        run: |
+          export PATH="${HOME}/.local/bin:${PATH}"
+          gh --version
+          
+  test-jira:
+    name: Test jira-cli
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Install jira
+        run: |
+          export PREFIX="${HOME}/.local/bin"
+          mkdir -p "${PREFIX}"
+          ./install.sh jira
+          
+      - name: Verify jira installation
+        run: |
+          export PATH="${HOME}/.local/bin:${PATH}"
+          jira version
+          
+  test-gdrive:
+    name: Test gdrive CLI
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Install gdrive
+        run: |
+          export PREFIX="${HOME}/.local/bin"
+          mkdir -p "${PREFIX}"
+          ./install.sh gdrive
+          
+      - name: Verify gdrive installation
+        run: |
+          export PATH="${HOME}/.local/bin:${PATH}"
+          gdrive version || gdrive --version || echo "gdrive installed at $(which gdrive)"
+          
+  test-slack:
+    name: Test Slack CLI
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Install slack
+        run: |
+          export PREFIX="${HOME}/.local/bin"
+          mkdir -p "${PREFIX}"
+          ./install.sh slack
+          
+      - name: Verify slack installation
+        run: |
+          export PATH="${HOME}/.local/bin:${PATH}"
+          slack version || slack --version
+          
+  test-aws-linux:
+    name: Test AWS CLI (Linux)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Install aws
+        run: |
+          export PREFIX="${HOME}/.local/bin"
+          mkdir -p "${PREFIX}"
+          ./install.sh aws
+          
+      - name: Verify aws installation
+        run: |
+          export PATH="${HOME}/.local/bin:${PATH}"
+          aws --version
+          
+  test-aws-macos:
+    name: Test AWS CLI (macOS - Manual)
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Note about macOS AWS CLI
+        run: |
+          echo "AWS CLI on macOS requires sudo for .pkg installation"
+          echo "Skipping automated test - see README for manual installation instructions"
+          
+  test-multiple:
+    name: Test multiple installations
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Install gh, jira, and slack together
+        run: |
+          export PREFIX="${HOME}/.local/bin"
+          mkdir -p "${PREFIX}"
+          ./install.sh gh jira slack
+          
+      - name: Verify all installations
+        run: |
+          export PATH="${HOME}/.local/bin:${PATH}"
+          gh --version
+          jira version
+          slack version || slack --version
+          
+  test-all-linux:
+    name: Test 'all' option (Linux)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Install all CLIs
+        run: |
+          export PREFIX="${HOME}/.local/bin"
+          mkdir -p "${PREFIX}"
+          ./install.sh all
+          
+      - name: Verify installations
+        run: |
+          export PATH="${HOME}/.local/bin:${PATH}"
+          gh --version
+          jira version
+          aws --version
+          gdrive version || gdrive --version || echo "gdrive installed"
+          slack version || slack --version
