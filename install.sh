@@ -222,7 +222,10 @@ install_binary_from_archive() {
 
   local found
   if [[ "$(uname -s)" =~ ^(MINGW|MSYS|CYGWIN) ]]; then
-    found="$(find "$tmpdir" -type f \( -name "$bin_name.exe" -o -name "$bin_name" \) 2>/dev/null | head -n 1 || true)"
+    found="$(find "$tmpdir" -type f -name "$bin_name.exe" 2>/dev/null | head -n 1 || true)"
+    if [[ -z "$found" ]]; then
+      found="$(find "$tmpdir" -type f -name "$bin_name" 2>/dev/null | head -n 1 || true)"
+    fi
   else
     found="$(find "$tmpdir" -type f -name "$bin_name" -perm -u+x 2>/dev/null | head -n 1 || true)"
     if [[ -z "$found" ]]; then
