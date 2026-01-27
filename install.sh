@@ -120,53 +120,43 @@ github_asset_url() {
     exit 1
   fi
 
-  echo "$json" | python3 - "$os" "$arch" "$prefer_ext" "$name_hint" <<'PY'
-import json, sys
-
-try:
-    data = json.load(sys.stdin)
-    assets = data.get("assets", [])
-    os_ = sys.argv[1] if len(sys.argv) > 1 else ""
-    arch = sys.argv[2] if len(sys.argv) > 2 else ""
-    prefer_ext = sys.argv[3] if len(sys.argv) > 3 else ""
-    hint = (sys.argv[4] if len(sys.argv) > 4 else "").lower()
-
-    candidates = []
-    for a in assets:
-        name = (a.get("name") or "")
-        lname = name.lower()
-        url = a.get("browser_download_url")
-        if not url:
-            continue
-        os_ok = (os_ in lname) or (("mac" in lname or "darwin" in lname) and os_ == "darwin") or (("win" in lname or "windows" in lname) and os_ == "windows")
-        if not os_ok:
-            continue
-        arch_ok = False
-        if arch == "arm64":
-            arch_ok = any(t in lname for t in ["arm64", "aarch64"])
-        elif arch == "amd64":
-            arch_ok = any(t in lname for t in ["amd64", "x86_64", "64-bit"])
-        if not arch_ok:
-            continue
-
-        score = 0
-        if hint and hint in lname:
-            score += 10
-        if prefer_ext and lname.endswith(prefer_ext):
-            score += 5
-        if any(lname.endswith(x) for x in [".sha256", ".sha256sum", ".sig", ".asc", ".txt"]):
-            score -= 50
-        candidates.append((score, name, url))
-
-    if not candidates:
-        sys.exit(2)
-
-    candidates.sort(key=lambda x: (-x[0], x[1]))
-    print(candidates[0][2])
-except Exception as e:
-    print(f"Error: {e}", file=sys.stderr)
-    sys.exit(1)
-PY
+  echo "$json" | python3 -c 'import json, sys
+data = json.load(sys.stdin)
+assets = data.get("assets", [])
+os_ = sys.argv[1] if len(sys.argv) > 1 else ""
+arch = sys.argv[2] if len(sys.argv) > 2 else ""
+prefer_ext = sys.argv[3] if len(sys.argv) > 3 else ""
+hint = (sys.argv[4] if len(sys.argv) > 4 else "").lower()
+candidates = []
+for a in assets:
+    name = (a.get("name") or "")
+    lname = name.lower()
+    url = a.get("browser_download_url")
+    if not url:
+        continue
+    os_ok = (os_ in lname) or (("mac" in lname or "darwin" in lname) and os_ == "darwin") or (("win" in lname or "windows" in lname) and os_ == "windows")
+    if not os_ok:
+        continue
+    arch_ok = False
+    if arch == "arm64":
+        arch_ok = any(t in lname for t in ["arm64", "aarch64"])
+    elif arch == "amd64":
+        arch_ok = any(t in lname for t in ["amd64", "x86_64", "64-bit"])
+    if not arch_ok:
+        continue
+    score = 0
+    if hint and hint in lname:
+        score += 10
+    if prefer_ext and lname.endswith(prefer_ext):
+        score += 5
+    if any(lname.endswith(x) for x in [".sha256", ".sha256sum", ".sig", ".asc", ".txt"]):
+        score -= 50
+    candidates.append((score, name, url))
+if not candidates:
+    sys.exit(2)
+candidates.sort(key=lambda x: (-x[0], x[1]))
+print(candidates[0][2])
+' "$os" "$arch" "$prefer_ext" "$name_hint"
 }
 
 node_latest_lts_version() {
