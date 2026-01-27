@@ -55,63 +55,66 @@ github_asset_url() {
   local owner="$1" repo="$2" os="$3" arch="$4" prefer_ext="$5" name_hint="$6"
 
   local api="https://api.github.com/repos/${owner}/${repo}/releases/latest"
-  # Optional: set GH_TOKEN in env to avoid rate limits
-  local auth_header=()
+  
+  local json
   if [[ -n "${GH_TOKEN:-}" ]]; then
-    auth_header=(-H "Authorization: Bearer ${GH_TOKEN}")
+    json="$(curl -fsSL -H "Authorization: Bearer ${GH_TOKEN}" -H "Accept: application/vnd.github+json" "${api}")"
+  else
+    json="$(curl -fsSL -H "Accept: application/vnd.github+json" "${api}")"
+  fi
+  
+  if [[ -z "$json" ]]; then
+    echo "Error: Failed to fetch release info for ${owner}/${repo}" >&2
+    exit 1
   fi
 
-  local json
-  json="$(curl -fsSL "${auth_header[@]}" -H "Accept: application/vnd.github+json" "${api}")"
+  python3 - "$json" "$os" "$arch" "$prefer_ext" "$name_hint" <<'PY'
+import json, sys
 
-  python3 - <<PY
-import json, re, sys
-data = json.loads("""${json}""")
-assets = data.get("assets", [])
-os_ = "${os}"
-arch = "${arch}"
-prefer_ext = "${prefer_ext}"
-hint = "${name_hint}".lower()
+try:
+    json_input = sys.argv[1]
+    data = json.loads(json_input)
+    assets = data.get("assets", [])
+    os_ = sys.argv[2] if len(sys.argv) > 2 else ""
+    arch = sys.argv[3] if len(sys.argv) > 3 else ""
+    prefer_ext = sys.argv[4] if len(sys.argv) > 4 else ""
+    hint = (sys.argv[5] if len(sys.argv) > 5 else "").lower()
 
-# Heuristics:
-# - must match OS and arch somewhere in name (common in release artifacts)
-# - prefer files containing hint (e.g., "slack", "jira", "gh", "gdrive") when available
-# - prefer extension (e.g., .tar.gz or .zip)
-candidates = []
-for a in assets:
-    name = (a.get("name") or "")
-    lname = name.lower()
-    url = a.get("browser_download_url")
-    if not url:
-        continue
-    # OS match
-    os_ok = (os_ in lname) or (("mac" in lname or "darwin" in lname) and os_ == "darwin")
-    if not os_ok:
-        continue
-    # Arch match (accept aarch64/x86_64 synonyms too)
-    arch_ok = False
-    if arch == "arm64":
-        arch_ok = any(t in lname for t in ["arm64", "aarch64"])
-    elif arch == "amd64":
-        arch_ok = any(t in lname for t in ["amd64", "x86_64"])
-    if not arch_ok:
-        continue
+    candidates = []
+    for a in assets:
+        name = (a.get("name") or "")
+        lname = name.lower()
+        url = a.get("browser_download_url")
+        if not url:
+            continue
+        os_ok = (os_ in lname) or (("mac" in lname or "darwin" in lname) and os_ == "darwin")
+        if not os_ok:
+            continue
+        arch_ok = False
+        if arch == "arm64":
+            arch_ok = any(t in lname for t in ["arm64", "aarch64"])
+        elif arch == "amd64":
+            arch_ok = any(t in lname for t in ["amd64", "x86_64"])
+        if not arch_ok:
+            continue
 
-    score = 0
-    if hint and hint in lname:
-        score += 10
-    if prefer_ext and lname.endswith(prefer_ext):
-        score += 5
-    # prefer smaller wrappers: avoid checksums/signatures as primary target
-    if any(lname.endswith(x) for x in [".sha256", ".sha256sum", ".sig", ".asc", ".txt"]):
-        score -= 50
-    candidates.append((score, name, url))
+        score = 0
+        if hint and hint in lname:
+            score += 10
+        if prefer_ext and lname.endswith(prefer_ext):
+            score += 5
+        if any(lname.endswith(x) for x in [".sha256", ".sha256sum", ".sig", ".asc", ".txt"]):
+            score -= 50
+        candidates.append((score, name, url))
 
-if not candidates:
-    sys.exit(2)
+    if not candidates:
+        sys.exit(2)
 
-candidates.sort(key=lambda x: (-x[0], x[1]))
-print(candidates[0][2])
+    candidates.sort(key=lambda x: (-x[0], x[1]))
+    print(candidates[0][2])
+except Exception as e:
+    print(f"Error: {e}", file=sys.stderr)
+    sys.exit(1)
 PY
 }
 
@@ -125,7 +128,6 @@ install_binary_from_archive() {
 
   local tmpdir
   tmpdir="$(mktemp -d)"
-  trap 'rm -rf "$tmpdir"' RETURN
 
   case "$archive" in
     *.tar.gz|*.tgz)
@@ -137,24 +139,25 @@ install_binary_from_archive() {
       ;;
     *)
       echo "Unsupported archive type: $archive" >&2
+      rm -rf "$tmpdir"
       exit 1
       ;;
   esac
 
-  # Find a file named exactly bin_name somewhere in the extracted tree
   local found
   found="$(find "$tmpdir" -type f -name "$bin_name" -perm -u+x 2>/dev/null | head -n 1 || true)"
   if [[ -z "$found" ]]; then
-    # Sometimes the file isn't marked executable in archive
     found="$(find "$tmpdir" -type f -name "$bin_name" 2>/dev/null | head -n 1 || true)"
   fi
   if [[ -z "$found" ]]; then
     echo "Could not locate ${bin_name} inside extracted archive." >&2
+    rm -rf "$tmpdir"
     exit 1
   fi
 
   chmod +x "$found"
   install -m 0755 "$found" "${PREFIX}/${bin_name}"
+  rm -rf "$tmpdir"
 }
 
 install_gh() {
