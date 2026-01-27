@@ -39,6 +39,7 @@ cd cli-installer-toolkit
 OPTIONS:
   --prefix PATH         Install location (default: ~/.local/bin)
   --non-interactive     Skip prompts, use defaults
+  --skip-skills         Skip automatic skills installation for Cursor/OpenCode
   -h, --help            Show usage
 
 TOOLS:
@@ -63,10 +64,42 @@ TOOLS:
 ./install.sh --prefix ~/bin gh aws
 
 ./install.sh --non-interactive cursor
+
+./install.sh --skip-skills cursor
+
 ./install.sh --prefix ~/bin gh aws npx
 ```
 
-## Bundled Skills
+## Automatic Skills Installation
+
+When installing **Cursor** or **OpenCode**, the script automatically installs skills from `~/.opencode/skills` if:
+
+1. `npx` is available in your PATH
+2. The skills directory exists at `~/.opencode/skills`
+3. You haven't disabled it with `--skip-skills`
+
+### Environment Variables
+
+- `INSTALL_SKILLS` - Set to `false` to skip automatic skills installation (default: `true`)
+- `CURSOR_INTERACTIVE` - Override interactive prompts (default: `true`)
+
+### Examples
+
+```bash
+# Install Cursor with automatic skills installation
+./install.sh cursor
+
+# Install Cursor but skip skills
+./install.sh --skip-skills cursor
+
+# Or use environment variable
+INSTALL_SKILLS=false ./install.sh cursor
+
+# Install npx first, then Cursor (for automatic skills)
+./install.sh npx cursor
+```
+
+### Bundled Skills
 
 This repo includes installable skills under `skills/`:
 
@@ -74,12 +107,11 @@ This repo includes installable skills under `skills/`:
 - `jira-cli`
 - `slack-cli`
 
-Install with the Skills CLI:
+Install manually with the Skills CLI:
 
 ```bash
 npx skills add ./cli-installer-toolkit --list
 npx skills add ./cli-installer-toolkit --skill aws-cli --skill jira-cli --skill slack-cli
-```
 ```
 
 ### Add to PATH
@@ -98,9 +130,9 @@ echo 'export PATH="$HOME/.local/bin:$PATH"' >> ~/.zshrc
 
 ## Special Notes
 
-### Cursor Installation
+### Cursor & OpenCode Installation
 
-Cursor is installed interactively by default:
+Cursor and OpenCode are installed interactively by default and include **automatic skills installation** if `npx` is available.
 
 **Linux:**
 - Choose between AppImage (no sudo), .deb, or .rpm packages
@@ -118,6 +150,15 @@ Cursor is installed interactively by default:
 
 export CURSOR_INSTALL_METHOD=deb
 ./install.sh --non-interactive cursor
+```
+
+**Skills installation:**
+```bash
+# Install with skills (default)
+./install.sh cursor
+
+# Skip skills installation
+./install.sh --skip-skills cursor
 ```
 
 ## Platform Support

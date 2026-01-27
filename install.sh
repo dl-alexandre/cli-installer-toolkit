@@ -5,17 +5,19 @@ set -euo pipefail
 PREFIX_DEFAULT="${HOME}/.local/bin"
 PREFIX="${PREFIX_DEFAULT}"
 INTERACTIVE="${CURSOR_INTERACTIVE:-true}"
+INSTALL_SKILLS="${INSTALL_SKILLS:-true}"
 
 usage() {
   cat <<'EOF'
 Usage:
-  ./install.sh [--prefix PATH] [--non-interactive] [all | gh aws jira gdrive slack cursor opencode npx]...
+  ./install.sh [--prefix PATH] [--non-interactive] [--skip-skills] [all | gh aws jira gdrive slack cursor opencode npx]...
 
 Examples:
   ./install.sh all
   ./install.sh --prefix "$HOME/.local/bin" gh jira slack
   ./install.sh cursor
   ./install.sh --non-interactive cursor  # Use defaults, no prompts
+  ./install.sh --skip-skills cursor      # Install Cursor but skip skills
 EOF
 }
 
@@ -49,6 +51,37 @@ ensure_prefix() {
     echo "NOTE: ${PREFIX} is not on your PATH."
     echo "Add this to your shell rc (e.g. ~/.zshrc or ~/.bashrc):"
     echo "  export PATH=\"${PREFIX}:\$PATH\""
+  fi
+}
+
+install_skills_to_editor() {
+  local editor="$1"
+  
+  if ! $INSTALL_SKILLS; then
+    echo "Skipping skills installation (INSTALL_SKILLS=false)"
+    return 0
+  fi
+  
+  if ! command -v npx >/dev/null 2>&1; then
+    echo "Note: npx not found. Install npx first to add skills to $editor:"
+    echo "  ./install.sh npx"
+    echo "  npx skills add <path-to-skills-dir>"
+    return 0
+  fi
+  
+  if [[ -d "${HOME}/.opencode/skills" ]]; then
+    echo "Installing bundled skills to $editor..."
+    if $INTERACTIVE; then
+      read -p "Install skills from ${HOME}/.opencode/skills? [Y/n]: " install_skills
+      if [[ ! "$install_skills" =~ ^[Nn]$ ]]; then
+        npx skills add "${HOME}/.opencode/skills" --yes || echo "Skills installation skipped or failed"
+      fi
+    else
+      npx skills add "${HOME}/.opencode/skills" --yes || echo "Skills installation skipped or failed"
+    fi
+  else
+    echo "Note: No skills directory found at ${HOME}/.opencode/skills"
+    echo "You can install skills later with: npx skills add <path-to-skills>"
   fi
 }
 
@@ -532,6 +565,8 @@ install_cursor() {
       return 1
       ;;
   esac
+  
+  install_skills_to_editor "Cursor"
 }
 
 install_opencode_deb() {
@@ -661,6 +696,8 @@ install_opencode() {
       return 1
       ;;
   esac
+  
+  install_skills_to_editor "OpenCode"
 }
 
 main() {
@@ -675,6 +712,10 @@ main() {
         ;;
       --non-interactive)
         INTERACTIVE=false
+        shift
+        ;;
+      --skip-skills)
+        INSTALL_SKILLS=false
         shift
         ;;
       -h|--help)
