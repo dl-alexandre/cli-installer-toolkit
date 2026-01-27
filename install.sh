@@ -250,9 +250,12 @@ install_binary_from_archive() {
     else
       target_name="${bin_name}.exe"
     fi
+    cp "$found" "${PREFIX}/${target_name}"
+    chmod +x "${PREFIX}/${target_name}"
+  else
+    install -m 0755 "$found" "${PREFIX}/${target_name}"
   fi
   
-  install -m 0755 "$found" "${PREFIX}/${target_name}"
   rm -rf "$tmpdir"
 }
 
