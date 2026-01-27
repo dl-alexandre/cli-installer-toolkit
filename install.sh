@@ -139,7 +139,7 @@ try:
         url = a.get("browser_download_url")
         if not url:
             continue
-        os_ok = (os_ in lname) or (("mac" in lname or "darwin" in lname) and os_ == "darwin")
+        os_ok = (os_ in lname) or (("mac" in lname or "darwin" in lname) and os_ == "darwin") or (("win" in lname or "windows" in lname) and os_ == "windows")
         if not os_ok:
             continue
         arch_ok = False
@@ -190,6 +190,15 @@ download_to() {
   curl -fL --retry 3 --retry-delay 1 -o "$out" "$url"
 }
 
+get_archive_ext() {
+  local os="$1"
+  if [[ "$os" == "windows" ]]; then
+    echo ".zip"
+  else
+    echo ".tar.gz"
+  fi
+}
+
 install_binary_from_archive() {
   local archive="$1" bin_name="$2"
 
@@ -211,11 +220,16 @@ install_binary_from_archive() {
       ;;
   esac
 
-  local found
-  found="$(find "$tmpdir" -type f -name "$bin_name" -perm -u+x 2>/dev/null | head -n 1 || true)"
-  if [[ -z "$found" ]]; then
-    found="$(find "$tmpdir" -type f -name "$bin_name" 2>/dev/null | head -n 1 || true)"
+  local found bin_pattern="$bin_name"
+  if [[ "$(uname -s)" =~ ^(MINGW|MSYS|CYGWIN) ]]; then
+    found="$(find "$tmpdir" -type f \( -name "$bin_name.exe" -o -name "$bin_name" \) 2>/dev/null | head -n 1 || true)"
+  else
+    found="$(find "$tmpdir" -type f -name "$bin_name" -perm -u+x 2>/dev/null | head -n 1 || true)"
+    if [[ -z "$found" ]]; then
+      found="$(find "$tmpdir" -type f -name "$bin_name" 2>/dev/null | head -n 1 || true)"
+    fi
   fi
+  
   if [[ -z "$found" ]]; then
     echo "Could not locate ${bin_name} inside extracted archive." >&2
     rm -rf "$tmpdir"
@@ -230,10 +244,10 @@ install_binary_from_archive() {
 install_gh() {
   local os="$1" arch="$2"
   echo "Installing gh..."
-  local url out
-  # gh assets are typically .tar.gz on mac/linux
-  url="$(github_asset_url "cli" "cli" "$os" "$arch" ".tar.gz" "gh")"
-  out="$(mktemp -t gh.XXXXXX).tar.gz"
+  local url out ext
+  ext="$(get_archive_ext "$os")"
+  url="$(github_asset_url "cli" "cli" "$os" "$arch" "$ext" "gh")"
+  out="$(mktemp -t gh.XXXXXX)${ext}"
   download_to "$url" "$out"
   install_binary_from_archive "$out" "gh"
   rm -f "$out"
@@ -243,9 +257,10 @@ install_gh() {
 install_jira() {
   local os="$1" arch="$2"
   echo "Installing jira..."
-  local url out
-  url="$(github_asset_url "ankitpokhrel" "jira-cli" "$os" "$arch" ".tar.gz" "jira")"
-  out="$(mktemp -t jira.XXXXXX).tar.gz"
+  local url out ext
+  ext="$(get_archive_ext "$os")"
+  url="$(github_asset_url "ankitpokhrel" "jira-cli" "$os" "$arch" "$ext" "jira")"
+  out="$(mktemp -t jira.XXXXXX)${ext}"
   download_to "$url" "$out"
   install_binary_from_archive "$out" "jira"
   rm -f "$out"
@@ -305,9 +320,10 @@ install_npx() {
   local os="$1" arch="$2"
   echo "Installing npx (Node.js LTS)..."
 
-  local node_os node_arch
+  local node_os node_arch ext
   case "$os" in
-    darwin|linux) node_os="$os" ;;
+    darwin|linux) node_os="$os"; ext="tar.gz" ;;
+    windows) node_os="win"; ext="zip" ;;
     *) echo "Unsupported OS for Node.js: $os" >&2; exit 1 ;;
   esac
 
@@ -321,13 +337,20 @@ install_npx() {
   version="$(node_latest_lts_version)"
 
   local url
-  url="https://nodejs.org/dist/${version}/node-${version}-${node_os}-${node_arch}.tar.gz"
+  url="https://nodejs.org/dist/${version}/node-${version}-${node_os}-${node_arch}.${ext}"
 
   local tmpdir archive extracted
   tmpdir="$(mktemp -d)"
-  archive="${tmpdir}/node.tar.gz"
+  archive="${tmpdir}/node.${ext}"
   download_to "$url" "$archive"
-  tar -xzf "$archive" -C "$tmpdir"
+  
+  if [[ "$ext" == "zip" ]]; then
+    need_cmd unzip
+    unzip -q "$archive" -d "$tmpdir"
+  else
+    tar -xzf "$archive" -C "$tmpdir"
+  fi
+  
   extracted="${tmpdir}/node-${version}-${node_os}-${node_arch}"
 
   local node_root
@@ -370,6 +393,22 @@ install_aws() {
     unzip -q "$zipfile" -d "$tmpdir"
 
     # Install user-local (no sudo), and link aws into PREFIX
+    "${tmpdir}/aws/install" -i "${HOME}/.local/aws-cli" -b "${PREFIX}" --update
+    rm -rf "$tmpdir"
+    echo "Installed: ${PREFIX}/aws"
+    return
+  fi
+
+  # Windows: use the same installation method as Linux
+  if [[ "$os" == "windows" ]]; then
+    local url="https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip"
+    
+    local tmpdir zipfile
+    tmpdir="$(mktemp -d)"
+    zipfile="${tmpdir}/awscliv2.zip"
+    download_to "$url" "$zipfile"
+    unzip -q "$zipfile" -d "$tmpdir"
+
     "${tmpdir}/aws/install" -i "${HOME}/.local/aws-cli" -b "${PREFIX}" --update
     rm -rf "$tmpdir"
     echo "Installed: ${PREFIX}/aws"
