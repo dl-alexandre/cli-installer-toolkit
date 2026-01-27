@@ -187,11 +187,15 @@ export CURSOR_INSTALL_METHOD=deb
 | Linux | ARM64 (aarch64) | ✅ Fully supported |
 | macOS | x86_64 (Intel) | ✅ Fully supported* |
 | macOS | ARM64 (Apple Silicon) | ✅ Fully supported* |
-| Windows | x86_64 (amd64) | ✅ Fully supported** |
+| Windows | x86_64 (amd64) | ⚠️ Partial support** |
 
 **AWS CLI on macOS requires `sudo` for the official `.pkg` installer.*
 
-***Windows requires Git Bash, WSL, or similar Unix-like shell environment.*
+***Windows support (via Git Bash/WSL):*
+- ✅ **Working:** jira-cli, gdrive
+- ⚠️ **In Progress:** gh (GitHub CLI), slack-cli, aws, npx
+- Windows binaries for some tools may have compatibility issues in Git Bash environments
+- Full Windows support is under active development
 
 ## Requirements
 
