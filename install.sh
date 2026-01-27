@@ -220,7 +220,7 @@ install_binary_from_archive() {
       ;;
   esac
 
-  local found bin_pattern="$bin_name"
+  local found
   if [[ "$(uname -s)" =~ ^(MINGW|MSYS|CYGWIN) ]]; then
     found="$(find "$tmpdir" -type f \( -name "$bin_name.exe" -o -name "$bin_name" \) 2>/dev/null | head -n 1 || true)"
   else
@@ -232,12 +232,22 @@ install_binary_from_archive() {
   
   if [[ -z "$found" ]]; then
     echo "Could not locate ${bin_name} inside extracted archive." >&2
+    echo "Contents of tmpdir:" >&2
+    find "$tmpdir" -type f 2>/dev/null | head -20 >&2 || true
     rm -rf "$tmpdir"
     exit 1
   fi
 
   chmod +x "$found"
-  install -m 0755 "$found" "${PREFIX}/${bin_name}"
+  
+  local target_name
+  if [[ "$(basename "$found")" == *.exe ]]; then
+    target_name="$(basename "$found")"
+  else
+    target_name="$bin_name"
+  fi
+  
+  install -m 0755 "$found" "${PREFIX}/${target_name}"
   rm -rf "$tmpdir"
 }
 
