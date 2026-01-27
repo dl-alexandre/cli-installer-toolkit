@@ -14,6 +14,7 @@ A universal installer script for popular CLI tools. Installs to `~/.local/bin` b
 | **gdrive** | Google Drive CLI | [dl-alexandre/Google-Drive-CLI](https://github.com/dl-alexandre/Google-Drive-CLI) |
 | **slack** | Slack CLI | [slackapi/slack-cli](https://github.com/slackapi/slack-cli) |
 | **cursor** | AI Code Editor | [cursor.com](https://cursor.com) |
+| **npx** | Node.js (npm + npx) | [nodejs/node](https://github.com/nodejs/node) |
 
 ## Quick Start
 
@@ -47,6 +48,7 @@ TOOLS:
   gdrive           Google Drive CLI
   slack            Slack CLI
   cursor           Cursor AI Code Editor
+  npx              Node.js (npm + npx)
 ```
 
 ### Examples
@@ -59,6 +61,23 @@ TOOLS:
 ./install.sh --prefix ~/bin gh aws
 
 ./install.sh --non-interactive cursor
+./install.sh --prefix ~/bin gh aws npx
+```
+
+## Bundled Skills
+
+This repo includes installable skills under `skills/`:
+
+- `aws-cli`
+- `jira-cli`
+- `slack-cli`
+
+Install with the Skills CLI:
+
+```bash
+npx skills add ./cli-installer-toolkit --list
+npx skills add ./cli-installer-toolkit --skill aws-cli --skill jira-cli --skill slack-cli
+```
 ```
 
 ### Add to PATH

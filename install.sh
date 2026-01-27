@@ -9,7 +9,7 @@ INTERACTIVE="${CURSOR_INTERACTIVE:-true}"
 usage() {
   cat <<'EOF'
 Usage:
-  ./install.sh [--prefix PATH] [--non-interactive] [all | gh aws jira gdrive slack cursor]...
+  ./install.sh [--prefix PATH] [--non-interactive] [all | gh aws jira gdrive slack cursor npx]...
 
 Examples:
   ./install.sh all
@@ -119,6 +119,21 @@ try:
 except Exception as e:
     print(f"Error: {e}", file=sys.stderr)
     sys.exit(1)
+PY
+}
+
+node_latest_lts_version() {
+  local json
+  json="$(curl -fsSL https://nodejs.org/dist/index.json)"
+  python3 - <<PY
+import json, sys
+data = json.loads("""${json}""")
+for item in data:
+    if item.get("lts"):
+        print(item["version"])
+        break
+else:
+    sys.exit(2)
 PY
 }
 
@@ -236,6 +251,54 @@ install_slack() {
   fi
 
   echo "Installed: ${PREFIX}/slack"
+}
+
+install_npx() {
+  local os="$1" arch="$2"
+  echo "Installing npx (Node.js LTS)..."
+
+  local node_os node_arch
+  case "$os" in
+    darwin|linux) node_os="$os" ;;
+    *) echo "Unsupported OS for Node.js: $os" >&2; exit 1 ;;
+  esac
+
+  case "$arch" in
+    amd64) node_arch="x64" ;;
+    arm64) node_arch="arm64" ;;
+    *) echo "Unsupported arch for Node.js: $arch" >&2; exit 1 ;;
+  esac
+
+  local version
+  version="$(node_latest_lts_version)"
+
+  local url
+  url="https://nodejs.org/dist/${version}/node-${version}-${node_os}-${node_arch}.tar.gz"
+
+  local tmpdir archive extracted
+  tmpdir="$(mktemp -d)"
+  archive="${tmpdir}/node.tar.gz"
+  download_to "$url" "$archive"
+  tar -xzf "$archive" -C "$tmpdir"
+  extracted="${tmpdir}/node-${version}-${node_os}-${node_arch}"
+
+  local node_root
+  node_root="${PREFIX%/bin}"
+  mkdir -p "${node_root}/bin"
+
+  cp -R "${extracted}/bin" "${node_root}/"
+  cp -R "${extracted}/lib" "${node_root}/"
+  if [[ -d "${extracted}/include" ]]; then
+    cp -R "${extracted}/include" "${node_root}/"
+  fi
+  if [[ -d "${extracted}/share" ]]; then
+    cp -R "${extracted}/share" "${node_root}/"
+  fi
+
+  rm -rf "$tmpdir"
+  echo "Installed: ${node_root}/bin/node"
+  echo "Installed: ${node_root}/bin/npm"
+  echo "Installed: ${node_root}/bin/npx"
 }
 
 install_aws() {
@@ -520,6 +583,7 @@ main() {
     install_gdrive_cli "$os" "$arch"
     install_slack "$os" "$arch"
     install_cursor "$os" "$arch"
+    install_npx "$os" "$arch"
   else
     for a in "${args[@]}"; do
       case "$a" in
@@ -529,6 +593,7 @@ main() {
         gdrive) install_gdrive_cli "$os" "$arch" ;;
         slack)  install_slack "$os" "$arch" ;;
         cursor) install_cursor "$os" "$arch" ;;
+        npx)    install_npx "$os" "$arch" ;;
         *)
           echo "Unknown component: $a" >&2
           usage
