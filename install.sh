@@ -240,11 +240,13 @@ install_binary_from_archive() {
 
   chmod +x "$found"
   
-  local target_name
-  if [[ "$(basename "$found")" == *.exe ]]; then
-    target_name="$(basename "$found")"
-  else
-    target_name="$bin_name"
+  local target_name="$bin_name"
+  if [[ "$(uname -s)" =~ ^(MINGW|MSYS|CYGWIN) ]]; then
+    if [[ "$(basename "$found")" == *.exe ]]; then
+      target_name="$(basename "$found")"
+    else
+      target_name="${bin_name}.exe"
+    fi
   fi
   
   install -m 0755 "$found" "${PREFIX}/${target_name}"
