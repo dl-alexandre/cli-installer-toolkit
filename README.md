@@ -192,10 +192,23 @@ export CURSOR_INSTALL_METHOD=deb
 **AWS CLI on macOS requires `sudo` for the official `.pkg` installer.*
 
 ***Windows support (via Git Bash/WSL):*
-- ✅ **Working:** jira-cli, gdrive
-- ⚠️ **In Progress:** gh (GitHub CLI), slack-cli, aws, npx
-- Windows binaries for some tools may have compatibility issues in Git Bash environments
-- Full Windows support is under active development
+- ✅ **Working:** gh (GitHub CLI), jira-cli, gdrive, slack-cli, npx
+- ❌ **Not Supported:** AWS CLI (requires MSI installer with admin rights)
+- ❌ **Not Supported:** "all" option (fails because AWS CLI isn't supported on Windows)
+
+**Windows AWS CLI Installation:**
+
+AWS CLI on Windows requires the official MSI installer which needs admin rights. For non-admin installation:
+
+```powershell
+# Download MSI
+curl -o AWSCLIV2.msi https://awscli.amazonaws.com/AWSCLIV2.msi
+
+# Extract without admin (community workaround)
+msiexec /a AWSCLIV2.msi /qb TARGETDIR=%USERPROFILE%\.local
+```
+
+Alternatively, use AWS CLI in WSL (Windows Subsystem for Linux) where this script fully supports it.
 
 ## Requirements
 
