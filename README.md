@@ -13,6 +13,7 @@ A universal installer script for popular CLI tools. Installs to `~/.local/bin` b
 | **jira** | Jira CLI | [ankitpokhrel/jira-cli](https://github.com/ankitpokhrel/jira-cli) |
 | **gdrive** | Google Drive CLI | [dl-alexandre/Google-Drive-CLI](https://github.com/dl-alexandre/Google-Drive-CLI) |
 | **slack** | Slack CLI | [slackapi/slack-cli](https://github.com/slackapi/slack-cli) |
+| **cursor** | AI Code Editor | [cursor.com](https://cursor.com) |
 
 ## Quick Start
 
@@ -34,8 +35,9 @@ cd cli-installer-toolkit
 ./install.sh [OPTIONS] [TOOLS...]
 
 OPTIONS:
-  --prefix PATH    Install location (default: ~/.local/bin)
-  -h, --help       Show usage
+  --prefix PATH         Install location (default: ~/.local/bin)
+  --non-interactive     Skip prompts, use defaults
+  -h, --help            Show usage
 
 TOOLS:
   all              Install all supported tools
@@ -44,6 +46,7 @@ TOOLS:
   jira             Jira CLI
   gdrive           Google Drive CLI
   slack            Slack CLI
+  cursor           Cursor AI Code Editor
 ```
 
 ### Examples
@@ -51,9 +54,11 @@ TOOLS:
 ```bash
 ./install.sh all
 
-./install.sh gh jira slack
+./install.sh gh jira slack cursor
 
 ./install.sh --prefix ~/bin gh aws
+
+./install.sh --non-interactive cursor
 ```
 
 ### Add to PATH
@@ -68,6 +73,30 @@ Add to your shell rc file (`~/.bashrc`, `~/.zshrc`, etc.) to make it permanent:
 
 ```bash
 echo 'export PATH="$HOME/.local/bin:$PATH"' >> ~/.zshrc
+```
+
+## Special Notes
+
+### Cursor Installation
+
+Cursor is installed interactively by default:
+
+**Linux:**
+- Choose between AppImage (no sudo), .deb, or .rpm packages
+- AppImage is recommended for user-local installation
+- Use `--non-interactive` for automated AppImage install
+
+**macOS:**
+- Downloads a .dmg file that you drag to Applications
+- Requires manual installation step
+- Cannot be fully automated
+
+**Non-interactive mode:**
+```bash
+./install.sh --non-interactive cursor
+
+export CURSOR_INSTALL_METHOD=deb
+./install.sh --non-interactive cursor
 ```
 
 ## Platform Support

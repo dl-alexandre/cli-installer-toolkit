@@ -4,15 +4,18 @@ set -euo pipefail
 # Default install location (user-local; no sudo needed)
 PREFIX_DEFAULT="${HOME}/.local/bin"
 PREFIX="${PREFIX_DEFAULT}"
+INTERACTIVE="${CURSOR_INTERACTIVE:-true}"
 
 usage() {
   cat <<'EOF'
 Usage:
-  ./install.sh [--prefix PATH] [all | gh aws jira gdrive slack]...
+  ./install.sh [--prefix PATH] [--non-interactive] [all | gh aws jira gdrive slack cursor]...
 
 Examples:
   ./install.sh all
   ./install.sh --prefix "$HOME/.local/bin" gh jira slack
+  ./install.sh cursor
+  ./install.sh --non-interactive cursor  # Use defaults, no prompts
 EOF
 }
 
@@ -282,6 +285,160 @@ install_aws() {
   fi
 }
 
+get_cursor_version() {
+  curl -fsSL "https://cursor.com/download" | \
+    grep -oE 'https://api2\.cursor\.sh/updates/download/golden/[^"]+/cursor/[0-9.]+' | \
+    head -1 | \
+    grep -oE '[0-9]+\.[0-9]+$' || echo "2.4"
+}
+
+install_cursor_appimage() {
+  local arch="$1" version="$2"
+  echo "Installing Cursor AppImage..."
+  
+  local url="https://api2.cursor.sh/updates/download/golden/linux-${arch}/cursor/${version}"
+  local out="${PREFIX}/cursor"
+  
+  download_to "$url" "$out"
+  chmod +x "$out"
+  
+  echo "Installed: ${PREFIX}/cursor (AppImage)"
+}
+
+install_cursor_deb() {
+  local arch="$1" version="$2"
+  echo "Installing Cursor .deb package..."
+  
+  local url="https://api2.cursor.sh/updates/download/golden/linux-${arch}-deb/cursor/${version}"
+  local tmpfile
+  tmpfile="$(mktemp -t cursor.XXXXXX).deb"
+  
+  download_to "$url" "$tmpfile"
+  
+  echo "Running: sudo dpkg -i \"$tmpfile\""
+  sudo dpkg -i "$tmpfile"
+  rm -f "$tmpfile"
+  
+  echo "Installed: cursor (system-wide via .deb)"
+}
+
+install_cursor_rpm() {
+  local arch="$1" version="$2"
+  echo "Installing Cursor .rpm package..."
+  
+  local url="https://api2.cursor.sh/updates/download/golden/linux-${arch}-rpm/cursor/${version}"
+  local tmpfile
+  tmpfile="$(mktemp -t cursor.XXXXXX).rpm"
+  
+  download_to "$url" "$tmpfile"
+  
+  echo "Running: sudo rpm -i \"$tmpfile\""
+  sudo rpm -i "$tmpfile"
+  rm -f "$tmpfile"
+  
+  echo "Installed: cursor (system-wide via .rpm)"
+}
+
+install_cursor_dmg() {
+  local arch="$1" version="$2"
+  echo "Downloading Cursor for macOS..."
+  
+  local platform
+  if [[ "$arch" == "arm64" ]]; then
+    platform="darwin-arm64"
+  elif [[ "$arch" == "amd64" ]]; then
+    platform="darwin-x64"
+  else
+    platform="darwin-universal"
+  fi
+  
+  local url="https://api2.cursor.sh/updates/download/golden/${platform}/cursor/${version}"
+  local tmpfile="${TMPDIR:-/tmp}/Cursor-${version}.dmg"
+  
+  download_to "$url" "$tmpfile"
+  
+  echo ""
+  echo "Downloaded to: $tmpfile"
+  echo ""
+  echo "To complete installation:"
+  echo "  1. Open: open \"$tmpfile\""
+  echo "  2. Drag Cursor.app to your Applications folder"
+  echo ""
+  
+  if $INTERACTIVE; then
+    read -p "Open DMG now? [y/N]: " open_now
+    if [[ "$open_now" =~ ^[Yy]$ ]]; then
+      open "$tmpfile"
+    fi
+  fi
+}
+
+install_cursor() {
+  local os="$1" arch="$2"
+  echo "Installing Cursor..."
+  
+  local version
+  version="$(get_cursor_version)"
+  echo "Latest version: $version"
+  
+  case "$os" in
+    linux)
+      if $INTERACTIVE; then
+        echo ""
+        echo "Cursor installation options for Linux:"
+        echo "  1) AppImage (no sudo, portable, recommended)"
+        echo "  2) .deb package (requires sudo, Ubuntu/Debian)"
+        echo "  3) .rpm package (requires sudo, Fedora/RHEL)"
+        echo ""
+        read -p "Choose installation method [1-3]: " choice
+        
+        case "$choice" in
+          1) install_cursor_appimage "$arch" "$version" ;;
+          2) install_cursor_deb "$arch" "$version" ;;
+          3) install_cursor_rpm "$arch" "$version" ;;
+          *) echo "Invalid choice. Using AppImage."; install_cursor_appimage "$arch" "$version" ;;
+        esac
+      else
+        local method="${CURSOR_INSTALL_METHOD:-appimage}"
+        case "$method" in
+          deb) install_cursor_deb "$arch" "$version" ;;
+          rpm) install_cursor_rpm "$arch" "$version" ;;
+          *) install_cursor_appimage "$arch" "$version" ;;
+        esac
+      fi
+      ;;
+      
+    darwin)
+      if $INTERACTIVE; then
+        echo ""
+        echo "Cursor for macOS requires manual installation:"
+        echo "  1. Download will save a .dmg file"
+        echo "  2. You'll need to open it and drag to Applications"
+        echo ""
+        read -p "Continue? [y/N]: " confirm
+        
+        if [[ "$confirm" =~ ^[Yy]$ ]]; then
+          install_cursor_dmg "$arch" "$version"
+        else
+          echo "Cursor installation cancelled."
+          return 1
+        fi
+      else
+        echo "Cursor for macOS requires interactive installation."
+        echo "Run without --non-interactive flag, or download manually from:"
+        echo "  https://cursor.com/download"
+        return 1
+      fi
+      ;;
+      
+    *)
+      echo "Cursor installation for Windows is not supported by this script."
+      echo "Please download from: https://cursor.com/download"
+      return 1
+      ;;
+  esac
+}
+
 main() {
   local args=()
   while [[ $# -gt 0 ]]; do
@@ -290,6 +447,10 @@ main() {
         shift
         PREFIX="${1:-}"
         [[ -n "$PREFIX" ]] || { echo "--prefix requires a value" >&2; exit 1; }
+        shift
+        ;;
+      --non-interactive)
+        INTERACTIVE=false
         shift
         ;;
       -h|--help)
@@ -326,6 +487,7 @@ main() {
     install_jira "$os" "$arch"
     install_gdrive_cli "$os" "$arch"
     install_slack "$os" "$arch"
+    install_cursor "$os" "$arch"
   else
     for a in "${args[@]}"; do
       case "$a" in
@@ -334,6 +496,7 @@ main() {
         jira)   install_jira "$os" "$arch" ;;
         gdrive) install_gdrive_cli "$os" "$arch" ;;
         slack)  install_slack "$os" "$arch" ;;
+        cursor) install_cursor "$os" "$arch" ;;
         *)
           echo "Unknown component: $a" >&2
           usage

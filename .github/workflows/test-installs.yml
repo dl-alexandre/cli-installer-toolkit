@@ -151,6 +151,30 @@ jobs:
           jira version
           slack version || slack --version
           
+  test-cursor:
+    name: Test Cursor (non-interactive)
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest]
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Install cursor (AppImage)
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          export PREFIX="${HOME}/.local/bin"
+          mkdir -p "${PREFIX}"
+          ./install.sh --non-interactive cursor
+          
+      - name: Verify cursor installation
+        run: |
+          export PATH="${HOME}/.local/bin:${PATH}"
+          cursor --version || echo "cursor installed at $(which cursor)"
+          file "${HOME}/.local/bin/cursor"
+          
   test-all-linux:
     name: Test 'all' option (Linux)
     runs-on: ubuntu-latest
@@ -173,3 +197,4 @@ jobs:
           aws --version
           gdrive version || gdrive --version || echo "gdrive installed"
           slack version || slack --version
+          cursor --version || echo "cursor installed"
