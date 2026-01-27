@@ -371,14 +371,9 @@ install_npx() {
       mkdir -p "${node_root}/lib"
       cp -R "${extracted}/node_modules" "${node_root}/lib/" 2>/dev/null || true
     fi
-    if [[ -f "${extracted}/npm" ]]; then
-      cp "${extracted}/npm" "${node_root}/bin/npm"
-      cp "${extracted}/npm.cmd" "${node_root}/bin/" 2>/dev/null || true
-    fi
-    if [[ -f "${extracted}/npx" ]]; then
-      cp "${extracted}/npx" "${node_root}/bin/npx"
-      cp "${extracted}/npx.cmd" "${node_root}/bin/" 2>/dev/null || true
-    fi
+    # Copy npm and npx (.cmd files are the Windows executables)
+    cp "${extracted}/npm.cmd" "${node_root}/bin/" 2>/dev/null || true
+    cp "${extracted}/npx.cmd" "${node_root}/bin/" 2>/dev/null || true
   else
     cp -R "${extracted}/bin" "${node_root}/"
     cp -R "${extracted}/lib" "${node_root}/"
@@ -425,32 +420,40 @@ install_aws() {
 
   # Windows: AWS provides a zip package that can be extracted
   if [[ "$os" == "windows" ]]; then
-    local url
-    if [[ "$arch" == "amd64" ]]; then
-      url="https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip"
-    else
+    if [[ "$arch" != "amd64" ]]; then
       echo "AWS CLI for Windows ARM64 not available" >&2
       return 1
     fi
     
-    local tmpdir zipfile
-    tmpdir="$(mktemp -d)"
-    zipfile="${tmpdir}/awscliv2.zip"
-    download_to "$url" "$zipfile"
-    unzip -q "$zipfile" -d "$tmpdir"
+    need_cmd msiexec
     
-    local install_script="${tmpdir}/aws/install"
-    if [[ -f "$install_script" ]]; then
-      bash "$install_script" -i "${HOME}/.local/aws-cli" -b "${PREFIX}" --update
+    local msi_url="https://awscli.amazonaws.com/AWSCLIV2.msi"
+    local tmpdir msifile target_dir
+    tmpdir="$(mktemp -d)"
+    msifile="${tmpdir}/AWSCLIV2.msi"
+    target_dir="${HOME}/.local"
+    
+    download_to "$msi_url" "$msifile"
+    
+    echo "Extracting AWS CLI MSI (using msiexec /a for non-admin install)..."
+    msiexec //a "$msifile" //qb TARGETDIR="$target_dir" || {
+      echo "MSI extraction failed. AWS CLI for Windows requires msiexec." >&2
+      rm -rf "$tmpdir"
+      return 1
+    }
+    
+    local aws_exe="${target_dir}/Amazon/AWSCLIV2/aws.exe"
+    if [[ -f "$aws_exe" ]]; then
+      cp "$aws_exe" "${PREFIX}/aws.exe"
+      echo "Installed: ${PREFIX}/aws.exe"
+      echo "Note: Add ${target_dir}/Amazon/AWSCLIV2 to your PATH for full functionality"
     else
-      echo "AWS install script not found, trying direct copy..." >&2
-      mkdir -p "${HOME}/.local/aws-cli"
-      cp -r "${tmpdir}/aws"/* "${HOME}/.local/aws-cli/" 2>/dev/null || true
-      ln -sf "${HOME}/.local/aws-cli/dist/aws" "${PREFIX}/aws" 2>/dev/null || true
+      echo "AWS CLI executable not found after MSI extraction" >&2
+      rm -rf "$tmpdir"
+      return 1
     fi
     
     rm -rf "$tmpdir"
-    echo "Installed: ${PREFIX}/aws"
     return
   fi
 
