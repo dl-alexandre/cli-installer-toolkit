@@ -72,31 +72,42 @@ TOOLS:
 
 ## Automatic Skills Installation
 
-When installing **Cursor** or **OpenCode**, the script automatically installs skills from `~/.opencode/skills` if:
+When installing **Cursor** or **OpenCode**, the script automatically installs skills and plugins if:
 
 1. `npx` is available in your PATH
-2. The skills directory exists at `~/.opencode/skills`
-3. You haven't disabled it with `--skip-skills`
+2. You haven't disabled it with `--skip-skills`
+
+### What Gets Installed
+
+**For OpenCode:**
+- [opencode-antigravity-auth](https://github.com/NoeFabris/opencode-antigravity-auth) - OAuth plugin for Google's Antigravity (access to Gemini 3 Pro and Claude Opus 4.5)
+- Bundled skills from `~/.opencode/skills` (if directory exists)
+
+**For Cursor:**
+- Bundled skills from `~/.opencode/skills` (if directory exists)
 
 ### Environment Variables
 
-- `INSTALL_SKILLS` - Set to `false` to skip automatic skills installation (default: `true`)
+- `INSTALL_SKILLS` - Set to `false` to skip automatic skills/plugin installation (default: `true`)
 - `CURSOR_INTERACTIVE` - Override interactive prompts (default: `true`)
 
 ### Examples
 
 ```bash
+# Install OpenCode with antigravity-auth plugin and skills
+./install.sh opencode
+
 # Install Cursor with automatic skills installation
 ./install.sh cursor
 
-# Install Cursor but skip skills
-./install.sh --skip-skills cursor
+# Install OpenCode/Cursor but skip plugins/skills
+./install.sh --skip-skills opencode
 
 # Or use environment variable
 INSTALL_SKILLS=false ./install.sh cursor
 
-# Install npx first, then Cursor (for automatic skills)
-./install.sh npx cursor
+# Install npx first, then OpenCode (for automatic installation)
+./install.sh npx opencode
 ```
 
 ### Bundled Skills
@@ -132,7 +143,11 @@ echo 'export PATH="$HOME/.local/bin:$PATH"' >> ~/.zshrc
 
 ### Cursor & OpenCode Installation
 
-Cursor and OpenCode are installed interactively by default and include **automatic skills installation** if `npx` is available.
+Cursor and OpenCode are installed interactively by default and include **automatic plugin and skills installation** if `npx` is available.
+
+**OpenCode includes:**
+- [opencode-antigravity-auth](https://github.com/NoeFabris/opencode-antigravity-auth) plugin for Google OAuth (Gemini 3 Pro, Claude Opus 4.5)
+- Bundled skills from `~/.opencode/skills`
 
 **Linux:**
 - Choose between AppImage (no sudo), .deb, or .rpm packages
@@ -146,19 +161,22 @@ Cursor and OpenCode are installed interactively by default and include **automat
 
 **Non-interactive mode:**
 ```bash
-./install.sh --non-interactive cursor
+./install.sh --non-interactive opencode
 
 export CURSOR_INSTALL_METHOD=deb
 ./install.sh --non-interactive cursor
 ```
 
-**Skills installation:**
+**Plugin and skills installation:**
 ```bash
-# Install with skills (default)
+# Install OpenCode with antigravity-auth plugin and skills (default)
+./install.sh opencode
+
+# Install Cursor with skills (default)
 ./install.sh cursor
 
-# Skip skills installation
-./install.sh --skip-skills cursor
+# Skip plugin and skills installation
+./install.sh --skip-skills opencode
 ```
 
 ## Platform Support

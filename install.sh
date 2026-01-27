@@ -69,6 +69,20 @@ install_skills_to_editor() {
     return 0
   fi
   
+  # Install opencode-antigravity-auth plugin for OpenCode
+  if [[ "$editor" == "OpenCode" ]]; then
+    echo "Installing opencode-antigravity-auth plugin..."
+    if $INTERACTIVE; then
+      read -p "Install opencode-antigravity-auth plugin? [Y/n]: " install_antigravity
+      if [[ ! "$install_antigravity" =~ ^[Nn]$ ]]; then
+        npm install -g opencode-antigravity-auth@latest || echo "Antigravity plugin installation failed"
+      fi
+    else
+      npm install -g opencode-antigravity-auth@latest || echo "Antigravity plugin installation failed"
+    fi
+  fi
+  
+  # Install bundled skills
   if [[ -d "${HOME}/.opencode/skills" ]]; then
     echo "Installing bundled skills to $editor..."
     if $INTERACTIVE; then
