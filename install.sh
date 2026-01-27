@@ -577,6 +577,7 @@ main() {
   done
 
   if $install_all; then
+    INTERACTIVE=false
     install_gh "$os" "$arch"
     install_aws "$os" "$arch"
     install_jira "$os" "$arch"
