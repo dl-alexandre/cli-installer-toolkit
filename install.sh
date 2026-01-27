@@ -296,10 +296,23 @@ install_cursor_appimage() {
   local arch="$1" version="$2"
   echo "Installing Cursor AppImage..."
   
-  local url="https://api2.cursor.sh/updates/download/golden/linux-${arch}/cursor/${version}"
+  local cursor_arch
+  if [[ "$arch" == "amd64" ]]; then
+    cursor_arch="x64"
+  else
+    cursor_arch="$arch"
+  fi
+  
+  local url="https://api2.cursor.sh/updates/download/golden/linux-${cursor_arch}/cursor/${version}"
   local out="${PREFIX}/cursor"
   
-  download_to "$url" "$out"
+  echo "Downloading from: $url"
+  if ! curl -fL --retry 3 --retry-delay 2 -A "cli-installer-toolkit" -o "$out" "$url"; then
+    echo "Error: Failed to download Cursor AppImage" >&2
+    echo "You may need to download manually from: https://cursor.com/download" >&2
+    return 1
+  fi
+  
   chmod +x "$out"
   
   echo "Installed: ${PREFIX}/cursor (AppImage)"
@@ -309,7 +322,14 @@ install_cursor_deb() {
   local arch="$1" version="$2"
   echo "Installing Cursor .deb package..."
   
-  local url="https://api2.cursor.sh/updates/download/golden/linux-${arch}-deb/cursor/${version}"
+  local cursor_arch
+  if [[ "$arch" == "amd64" ]]; then
+    cursor_arch="x64"
+  else
+    cursor_arch="$arch"
+  fi
+  
+  local url="https://api2.cursor.sh/updates/download/golden/linux-${cursor_arch}-deb/cursor/${version}"
   local tmpfile
   tmpfile="$(mktemp -t cursor.XXXXXX).deb"
   
@@ -326,7 +346,14 @@ install_cursor_rpm() {
   local arch="$1" version="$2"
   echo "Installing Cursor .rpm package..."
   
-  local url="https://api2.cursor.sh/updates/download/golden/linux-${arch}-rpm/cursor/${version}"
+  local cursor_arch
+  if [[ "$arch" == "amd64" ]]; then
+    cursor_arch="x64"
+  else
+    cursor_arch="$arch"
+  fi
+  
+  local url="https://api2.cursor.sh/updates/download/golden/linux-${cursor_arch}-rpm/cursor/${version}"
   local tmpfile
   tmpfile="$(mktemp -t cursor.XXXXXX).rpm"
   
@@ -355,7 +382,12 @@ install_cursor_dmg() {
   local url="https://api2.cursor.sh/updates/download/golden/${platform}/cursor/${version}"
   local tmpfile="${TMPDIR:-/tmp}/Cursor-${version}.dmg"
   
-  download_to "$url" "$tmpfile"
+  echo "Downloading from: $url"
+  if ! curl -fL --retry 3 --retry-delay 2 -A "cli-installer-toolkit" -o "$tmpfile" "$url"; then
+    echo "Error: Failed to download Cursor" >&2
+    echo "You may need to download manually from: https://cursor.com/download" >&2
+    return 1
+  fi
   
   echo ""
   echo "Downloaded to: $tmpfile"
