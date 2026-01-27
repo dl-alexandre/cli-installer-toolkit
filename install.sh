@@ -411,17 +411,32 @@ install_aws() {
     return
   fi
 
-  # Windows: use the same installation method as Linux
+  # Windows: AWS provides a zip package that can be extracted
   if [[ "$os" == "windows" ]]; then
-    local url="https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip"
+    local url
+    if [[ "$arch" == "amd64" ]]; then
+      url="https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip"
+    else
+      echo "AWS CLI for Windows ARM64 not available" >&2
+      return 1
+    fi
     
     local tmpdir zipfile
     tmpdir="$(mktemp -d)"
     zipfile="${tmpdir}/awscliv2.zip"
     download_to "$url" "$zipfile"
     unzip -q "$zipfile" -d "$tmpdir"
-
-    "${tmpdir}/aws/install" -i "${HOME}/.local/aws-cli" -b "${PREFIX}" --update
+    
+    local install_script="${tmpdir}/aws/install"
+    if [[ -f "$install_script" ]]; then
+      bash "$install_script" -i "${HOME}/.local/aws-cli" -b "${PREFIX}" --update
+    else
+      echo "AWS install script not found, trying direct copy..." >&2
+      mkdir -p "${HOME}/.local/aws-cli"
+      cp -r "${tmpdir}/aws"/* "${HOME}/.local/aws-cli/" 2>/dev/null || true
+      ln -sf "${HOME}/.local/aws-cli/dist/aws" "${PREFIX}/aws" 2>/dev/null || true
+    fi
+    
     rm -rf "$tmpdir"
     echo "Installed: ${PREFIX}/aws"
     return
