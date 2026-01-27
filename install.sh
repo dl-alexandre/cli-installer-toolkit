@@ -369,13 +369,30 @@ install_npx() {
   node_root="${PREFIX%/bin}"
   mkdir -p "${node_root}/bin"
 
-  cp -R "${extracted}/bin" "${node_root}/"
-  cp -R "${extracted}/lib" "${node_root}/"
-  if [[ -d "${extracted}/include" ]]; then
-    cp -R "${extracted}/include" "${node_root}/"
-  fi
-  if [[ -d "${extracted}/share" ]]; then
-    cp -R "${extracted}/share" "${node_root}/"
+  if [[ "$os" == "windows" ]]; then
+    cp "${extracted}/"*.exe "${node_root}/bin/" 2>/dev/null || true
+    cp "${extracted}/node.exe" "${node_root}/bin/" 2>/dev/null || true
+    if [[ -d "${extracted}/node_modules" ]]; then
+      mkdir -p "${node_root}/lib"
+      cp -R "${extracted}/node_modules" "${node_root}/lib/" 2>/dev/null || true
+    fi
+    if [[ -f "${extracted}/npm" ]]; then
+      cp "${extracted}/npm" "${node_root}/bin/npm"
+      cp "${extracted}/npm.cmd" "${node_root}/bin/" 2>/dev/null || true
+    fi
+    if [[ -f "${extracted}/npx" ]]; then
+      cp "${extracted}/npx" "${node_root}/bin/npx"
+      cp "${extracted}/npx.cmd" "${node_root}/bin/" 2>/dev/null || true
+    fi
+  else
+    cp -R "${extracted}/bin" "${node_root}/"
+    cp -R "${extracted}/lib" "${node_root}/"
+    if [[ -d "${extracted}/include" ]]; then
+      cp -R "${extracted}/include" "${node_root}/"
+    fi
+    if [[ -d "${extracted}/share" ]]; then
+      cp -R "${extracted}/share" "${node_root}/"
+    fi
   fi
 
   rm -rf "$tmpdir"
