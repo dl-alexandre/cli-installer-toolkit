@@ -6,11 +6,23 @@ PREFIX_DEFAULT="${HOME}/.local/bin"
 PREFIX="${PREFIX_DEFAULT}"
 INTERACTIVE="${CURSOR_INTERACTIVE:-true}"
 INSTALL_SKILLS="${INSTALL_SKILLS:-true}"
+FORCE_INSTALL="${FORCE_INSTALL:-false}"
 
 usage() {
   cat <<'EOF'
 Usage:
-  ./install.sh [--prefix PATH] [--non-interactive] [--skip-skills] [all | gh aws jira gdrive slack cursor opencode npx]...
+  ./install.sh [OPTIONS] [TOOLS...]
+
+OPTIONS:
+  --prefix PATH         Install location (default: ~/.local/bin)
+  --non-interactive     Skip prompts, use defaults
+  --skip-skills         Skip automatic skills installation
+  --force               Force reinstall even if already up to date
+  -h, --help            Show this help
+
+TOOLS:
+  all                   Install all supported tools
+  gh, aws, jira, gdrive, slack, cursor, opencode, npx
 
 Examples:
   ./install.sh all
@@ -18,6 +30,7 @@ Examples:
   ./install.sh cursor
   ./install.sh --non-interactive cursor  # Use defaults, no prompts
   ./install.sh --skip-skills cursor      # Install Cursor but skip skills
+  ./install.sh --force gh                # Force reinstall gh
 EOF
 }
 
@@ -117,6 +130,87 @@ ensure_prefix() {
     echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
     echo ""
   fi
+}
+
+get_installed_version() {
+  local tool="$1"
+  local version=""
+  
+  if [[ ! -f "${PREFIX}/${tool}" ]]; then
+    echo ""
+    return
+  fi
+  
+  case "$tool" in
+    gh)
+      version="$("${PREFIX}/gh" --version 2>/dev/null | head -1 | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' || echo "")"
+      ;;
+    jira)
+      version="$("${PREFIX}/jira" version 2>/dev/null | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' || echo "")"
+      ;;
+    gdrv)
+      version="$("${PREFIX}/gdrv" version 2>/dev/null | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' || echo "")"
+      ;;
+    slack)
+      version="$("${PREFIX}/slack" version 2>/dev/null | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' || echo "")"
+      ;;
+    npx|npm|node)
+      version="$("${PREFIX}/node" --version 2>/dev/null | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' || echo "")"
+      ;;
+    aws)
+      version="$("${PREFIX}/aws" --version 2>/dev/null | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | head -1 || echo "")"
+      ;;
+    *)
+      echo ""
+      return
+      ;;
+  esac
+  
+  echo "$version"
+}
+
+get_latest_github_version() {
+  local owner="$1"
+  local repo="$2"
+  
+  local version
+  version="$(curl -fsSL "https://api.github.com/repos/${owner}/${repo}/releases/latest" | \
+    grep -oE '"tag_name": *"v?[0-9]+\.[0-9]+\.[0-9]+"' | \
+    grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | \
+    head -1 || echo "")"
+  
+  echo "$version"
+}
+
+check_should_install() {
+  local tool="$1"
+  local latest_version="$2"
+  
+  if $FORCE_INSTALL; then
+    return 0
+  fi
+  
+  local current_version
+  current_version="$(get_installed_version "$tool")"
+  
+  if [[ -z "$current_version" ]]; then
+    echo "Installing $tool..."
+    return 0
+  fi
+  
+  if [[ -z "$latest_version" ]]; then
+    echo "$tool is already installed (version: $current_version)"
+    echo "Use --force to reinstall"
+    return 1
+  fi
+  
+  if [[ "$current_version" == "$latest_version" ]]; then
+    echo "✓ $tool is already up to date (version: $current_version)"
+    return 1
+  fi
+  
+  echo "Updating $tool: $current_version → $latest_version"
+  return 0
 }
 
 install_skills_to_editor() {
@@ -314,7 +408,14 @@ install_binary_from_archive() {
 
 install_gh() {
   local os="$1" arch="$2"
-  echo "Installing gh..."
+  
+  local latest_version
+  latest_version="$(get_latest_github_version "cli" "cli")"
+  
+  if ! check_should_install "gh" "$latest_version"; then
+    return 0
+  fi
+  
   local url out ext
   ext="$(get_archive_ext "$os")"
   url="$(github_asset_url "cli" "cli" "$os" "$arch" "$ext" "gh")"
@@ -322,12 +423,19 @@ install_gh() {
   download_to "$url" "$out"
   install_binary_from_archive "$out" "gh"
   rm -f "$out"
-  echo "Installed: ${PREFIX}/gh"
+  echo "✓ Installed: ${PREFIX}/gh (version: $latest_version)"
 }
 
 install_jira() {
   local os="$1" arch="$2"
-  echo "Installing jira..."
+  
+  local latest_version
+  latest_version="$(get_latest_github_version "ankitpokhrel" "jira-cli")"
+  
+  if ! check_should_install "jira" "$latest_version"; then
+    return 0
+  fi
+  
   local url out ext
   ext="$(get_archive_ext "$os")"
   url="$(github_asset_url "ankitpokhrel" "jira-cli" "$os" "$arch" "$ext" "jira")"
@@ -335,36 +443,50 @@ install_jira() {
   download_to "$url" "$out"
   install_binary_from_archive "$out" "jira"
   rm -f "$out"
-  echo "Installed: ${PREFIX}/jira"
+  echo "✓ Installed: ${PREFIX}/jira (version: $latest_version)"
 }
 
 install_gdrive_cli() {
   local os="$1" arch="$2"
-  echo "Installing gdrive (dl-alexandre/Google-Drive-CLI)..."
+  
+  local latest_version
+  latest_version="$(get_latest_github_version "dl-alexandre" "Google-Drive-CLI")"
+  
+  if ! check_should_install "gdrv" "$latest_version"; then
+    return 0
+  fi
+  
   local url out
-  # This repo's release assets are expected to contain the binary named "gdrive"
-  url="$(github_asset_url "dl-alexandre" "Google-Drive-CLI" "$os" "$arch" "" "gdrive")"
-  out="$(mktemp -t gdrive.XXXXXX)"
+  # This repo's release assets contain binaries named "gdrv"
+  url="$(github_asset_url "dl-alexandre" "Google-Drive-CLI" "$os" "$arch" "" "gdrv")"
+  out="$(mktemp -t gdrv.XXXXXX)"
 
   # If it's not an archive, just install directly.
   if [[ "$url" == *.tar.gz || "$url" == *.tgz || "$url" == *.zip ]]; then
     out="${out}${url##*.}" # crude but ok
     download_to "$url" "$out"
-    install_binary_from_archive "$out" "gdrive"
+    install_binary_from_archive "$out" "gdrv"
     rm -f "$out"
   else
     download_to "$url" "$out"
     chmod +x "$out"
-    install -m 0755 "$out" "${PREFIX}/gdrive"
+    install -m 0755 "$out" "${PREFIX}/gdrv"
     rm -f "$out"
   fi
 
-  echo "Installed: ${PREFIX}/gdrive"
+  echo "✓ Installed: ${PREFIX}/gdrv (version: $latest_version)"
 }
 
 install_slack() {
   local os="$1" arch="$2"
-  echo "Installing slack..."
+  
+  local latest_version
+  latest_version="$(get_latest_github_version "slackapi" "slack-cli")"
+  
+  if ! check_should_install "slack" "$latest_version"; then
+    return 0
+  fi
+  
   local url out
   # Slack CLI releases typically ship as archives
   url="$(github_asset_url "slackapi" "slack-cli" "$os" "$arch" "" "slack")"
@@ -384,7 +506,7 @@ install_slack() {
     rm -f "$out"
   fi
 
-  echo "Installed: ${PREFIX}/slack"
+  echo "✓ Installed: ${PREFIX}/slack (version: $latest_version)"
 }
 
 install_npx() {
@@ -851,6 +973,10 @@ main() {
         ;;
       --skip-skills)
         INSTALL_SKILLS=false
+        shift
+        ;;
+      --force)
+        FORCE_INSTALL=true
         shift
         ;;
       -h|--help)
