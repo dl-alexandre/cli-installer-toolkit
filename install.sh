@@ -3,7 +3,7 @@ set -euo pipefail
 
 # Default install location (user-local; no sudo needed)
 PREFIX_DEFAULT="${HOME}/.local/bin"
-PREFIX="${PREFIX_DEFAULT}"
+PREFIX="${PREFIX:-${PREFIX_DEFAULT}}"
 INTERACTIVE="${CURSOR_INTERACTIVE:-true}"
 INSTALL_SKILLS="${INSTALL_SKILLS:-true}"
 FORCE_INSTALL="${FORCE_INSTALL:-false}"
