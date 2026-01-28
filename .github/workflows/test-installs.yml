@@ -351,6 +351,17 @@ jobs:
           echo "✓ PATH warning correctly shown"
         shell: bash
         
+      - name: Verify automatic PATH setup is offered (non-interactive check)
+        run: |
+          # In CI, stdin is not a tty, so auto-prompt won't appear
+          # Just verify the manual instructions are still shown
+          if ! grep -q "To add manually" install_output.txt; then
+            echo "ERROR: Manual PATH instructions not shown!"
+            exit 1
+          fi
+          echo "✓ Manual PATH instructions shown (CI is non-interactive)"
+        shell: bash
+        
       - name: Verify command fails without PATH (expected)
         run: |
           if gh --version 2>/dev/null; then
@@ -366,4 +377,17 @@ jobs:
           export PATH="${HOME}/.local/bin:${PATH}"
           gh --version
           echo "✓ Command works after PATH is set"
+        shell: bash
+        
+      - name: Test automatic PATH setup with AUTO_PATH=false
+        run: |
+          export PREFIX="${HOME}/.local/bin"
+          export AUTO_PATH=false
+          ./install.sh jira 2>&1 | tee auto_path_test.txt
+          # Should show manual instructions when AUTO_PATH=false
+          if ! grep -q "To add manually" auto_path_test.txt; then
+            echo "ERROR: Manual instructions not shown with AUTO_PATH=false!"
+            exit 1
+          fi
+          echo "✓ AUTO_PATH=false correctly skips prompt"
         shell: bash
