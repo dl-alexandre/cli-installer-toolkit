@@ -337,7 +337,8 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          export PREFIX="${HOME}/.local/bin"
+          # Use a custom prefix that's definitely NOT on PATH
+          export PREFIX="${HOME}/.test-cli-tools"
           mkdir -p "${PREFIX}"
           ./install.sh gh 2>&1 | tee install_output.txt
         shell: bash
@@ -374,14 +375,14 @@ jobs:
         
       - name: Verify command works WITH PATH
         run: |
-          export PATH="${HOME}/.local/bin:${PATH}"
+          export PATH="${HOME}/.test-cli-tools:${PATH}"
           gh --version
           echo "✓ Command works after PATH is set"
         shell: bash
         
       - name: Test automatic PATH setup with AUTO_PATH=false
         run: |
-          export PREFIX="${HOME}/.local/bin"
+          export PREFIX="${HOME}/.test-cli-tools"
           export AUTO_PATH=false
           ./install.sh jira 2>&1 | tee auto_path_test.txt
           # Should show manual instructions when AUTO_PATH=false
