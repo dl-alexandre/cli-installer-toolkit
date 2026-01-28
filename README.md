@@ -51,6 +51,7 @@ OPTIONS:
   --prefix PATH         Install location (default: ~/.local/bin)
   --non-interactive     Skip prompts, use defaults
   --skip-skills         Skip automatic skills installation for Cursor/OpenCode
+  --force               Force reinstall even if already up to date
   -h, --help            Show usage
 
 TOOLS:
@@ -68,18 +69,67 @@ TOOLS:
 ### Examples
 
 ```bash
+# Install all tools
 ./install.sh all
 
+# Install specific tools
 ./install.sh gh jira slack cursor
 
+# Custom install location
 ./install.sh --prefix ~/bin gh aws
 
+# Non-interactive mode (for CI/scripts)
 ./install.sh --non-interactive cursor
 
+# Skip automatic skills installation
 ./install.sh --skip-skills cursor
 
-./install.sh --prefix ~/bin gh aws npx
+# Force reinstall even if up to date
+./install.sh --force gh
+
+# Check for updates (run again)
+./install.sh gh
+# Output: ✓ gh is already up to date (version: 2.42.0)
+# Or: Updating gh: 2.40.0 → 2.42.0
 ```
+
+## Updating Tools
+
+The installer is **version-aware** and will automatically detect if tools need updating.
+
+### How It Works
+
+When you run the installer for a tool that's already installed:
+
+1. **Checks current version** (if tool exists in `~/.local/bin`)
+2. **Fetches latest version** from GitHub releases
+3. **Compares versions** and shows appropriate message:
+   - **New install**: `Installing gh...`
+   - **Update available**: `Updating gh: 2.40.0 → 2.42.0`
+   - **Already current**: `✓ gh is already up to date (version: 2.42.0)`
+
+### Update All Tools
+
+```bash
+# Re-run with 'all' to check everything
+./install.sh all
+
+# Or update specific tools
+./install.sh gh jira slack
+```
+
+### Force Reinstall
+
+```bash
+# Bypass version check and reinstall anyway
+./install.sh --force gh
+```
+
+### Supported Tools
+
+Version detection works for: `gh`, `jira`, `gdrv`, `slack`, `npx` (Node.js), `aws`
+
+> **Note**: Tools like Cursor and OpenCode are installed via platform-specific packages and use their own update mechanisms.
 
 ## Automatic Skills Installation
 
@@ -102,6 +152,7 @@ When installing **Cursor** or **OpenCode**, the script automatically installs sk
 - `INSTALL_SKILLS` - Set to `false` to skip automatic skills/plugin installation (default: `true`)
 - `CURSOR_INTERACTIVE` - Override interactive prompts (default: `true`)
 - `AUTO_PATH` - Set to `false` to skip automatic PATH configuration prompt (default: interactive prompt shown)
+- `FORCE_INSTALL` - Set to `true` to force reinstall without version checks (same as `--force` flag)
 
 ### Examples
 
