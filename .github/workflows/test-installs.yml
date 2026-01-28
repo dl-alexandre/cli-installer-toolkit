@@ -344,7 +344,7 @@ jobs:
         
       - name: Verify PATH warning is shown
         run: |
-          if ! grep -q "not on your PATH" install_output.txt; then
+          if ! grep -q "is not on your PATH" install_output.txt; then
             echo "ERROR: PATH warning not shown to user!"
             exit 1
           fi
