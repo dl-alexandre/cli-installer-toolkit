@@ -311,7 +311,7 @@ jobs:
           mkdir -p "${PREFIX}"
           ./install.sh all
         shell: bash
-        
+         
       - name: Verify installations
         run: |
           export PATH="${HOME}/.local/bin:${PATH}"
@@ -321,4 +321,49 @@ jobs:
           gdrive version || gdrive --version || echo "gdrive installed"
           slack version || slack --version
           npx --version
+        shell: bash
+        
+  test-path-warning:
+    name: Test PATH warning and user experience
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Install gh without PATH
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          export PREFIX="${HOME}/.local/bin"
+          mkdir -p "${PREFIX}"
+          ./install.sh gh 2>&1 | tee install_output.txt
+        shell: bash
+        
+      - name: Verify PATH warning is shown
+        run: |
+          if ! grep -q "not on your PATH" install_output.txt; then
+            echo "ERROR: PATH warning not shown to user!"
+            exit 1
+          fi
+          echo "✓ PATH warning correctly shown"
+        shell: bash
+        
+      - name: Verify command fails without PATH (expected)
+        run: |
+          if gh --version 2>/dev/null; then
+            echo "ERROR: Command should NOT work without PATH!"
+            exit 1
+          fi
+          echo "✓ Command correctly fails without PATH set"
+        shell: bash
+        continue-on-error: false
+        
+      - name: Verify command works WITH PATH
+        run: |
+          export PATH="${HOME}/.local/bin:${PATH}"
+          gh --version
+          echo "✓ Command works after PATH is set"
         shell: bash
