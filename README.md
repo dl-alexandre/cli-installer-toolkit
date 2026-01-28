@@ -20,10 +20,14 @@ A universal installer script for popular CLI tools. Installs to `~/.local/bin` b
 ## Quick Start
 
 ```bash
-# Install all CLIs
+# Install all CLIs (will prompt to auto-configure PATH)
 curl -fsSL https://raw.githubusercontent.com/dl-alexandre/cli-installer-toolkit/main/install.sh | bash -s -- all
+```
 
-# IMPORTANT: Add to PATH (required!)
+The installer will automatically offer to add `~/.local/bin` to your PATH. If you decline or the prompt doesn't appear:
+
+```bash
+# Manually add to PATH
 echo 'export PATH="$HOME/.local/bin:$PATH"' >> ~/.zshrc && source ~/.zshrc
 ```
 
@@ -33,12 +37,10 @@ Or clone and run locally:
 git clone https://github.com/dl-alexandre/cli-installer-toolkit.git
 cd cli-installer-toolkit
 ./install.sh all
-
-# Add to PATH
-echo 'export PATH="$HOME/.local/bin:$PATH"' >> ~/.zshrc && source ~/.zshrc
+# Will prompt to configure PATH automatically
 ```
 
-> **⚠️ Note**: Installed CLIs won't work until you add `~/.local/bin` to your PATH (see above).
+> **⚠️ Note**: Installed CLIs won't work until `~/.local/bin` is on your PATH. The installer will help you set this up.
 
 ## Usage
 
@@ -99,6 +101,7 @@ When installing **Cursor** or **OpenCode**, the script automatically installs sk
 
 - `INSTALL_SKILLS` - Set to `false` to skip automatic skills/plugin installation (default: `true`)
 - `CURSOR_INTERACTIVE` - Override interactive prompts (default: `true`)
+- `AUTO_PATH` - Set to `false` to skip automatic PATH configuration prompt (default: interactive prompt shown)
 
 ### Examples
 

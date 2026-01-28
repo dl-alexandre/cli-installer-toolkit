@@ -56,7 +56,58 @@ ensure_prefix() {
     echo ""
     echo "Installed CLIs will NOT work until you add this to your PATH."
     echo ""
-    echo "Run this command now:"
+    
+    if [[ -t 0 ]] && [[ "${AUTO_PATH:-}" != "false" ]]; then
+      local shell_rc=""
+      local current_shell="$(basename "$SHELL")"
+      
+      case "$current_shell" in
+        zsh)
+          shell_rc="$HOME/.zshrc"
+          ;;
+        bash)
+          if [[ -f "$HOME/.bashrc" ]]; then
+            shell_rc="$HOME/.bashrc"
+          elif [[ -f "$HOME/.bash_profile" ]]; then
+            shell_rc="$HOME/.bash_profile"
+          fi
+          ;;
+        fish)
+          shell_rc="$HOME/.config/fish/config.fish"
+          ;;
+      esac
+      
+      if [[ -n "$shell_rc" ]]; then
+        echo "Would you like to automatically add ${PREFIX} to your PATH?"
+        echo "This will append to: $shell_rc"
+        echo ""
+        read -p "Add to PATH now? [Y/n] " -n 1 -r
+        echo ""
+        
+        if [[ $REPLY =~ ^[Yy]$ ]] || [[ -z $REPLY ]]; then
+          if [[ "$current_shell" == "fish" ]]; then
+            mkdir -p "$(dirname "$shell_rc")"
+            echo "fish_add_path $PREFIX" >> "$shell_rc"
+          else
+            echo "" >> "$shell_rc"
+            echo "# Added by cli-installer-toolkit" >> "$shell_rc"
+            echo "export PATH=\"${PREFIX}:\$PATH\"" >> "$shell_rc"
+          fi
+          echo "✓ Added to $shell_rc"
+          echo ""
+          echo "Run this to apply now:"
+          echo "  source $shell_rc"
+          echo ""
+          echo "Or restart your terminal."
+          return
+        else
+          echo "Skipped automatic setup."
+          echo ""
+        fi
+      fi
+    fi
+    
+    echo "To add manually, run this command:"
     echo ""
     echo "  echo 'export PATH=\"${PREFIX}:\$PATH\"' >> ~/.zshrc && source ~/.zshrc"
     echo ""
