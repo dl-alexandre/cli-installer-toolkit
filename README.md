@@ -20,7 +20,11 @@ A universal installer script for popular CLI tools. Installs to `~/.local/bin` b
 ## Quick Start
 
 ```bash
+# Install all CLIs
 curl -fsSL https://raw.githubusercontent.com/dl-alexandre/cli-installer-toolkit/main/install.sh | bash -s -- all
+
+# IMPORTANT: Add to PATH (required!)
+echo 'export PATH="$HOME/.local/bin:$PATH"' >> ~/.zshrc && source ~/.zshrc
 ```
 
 Or clone and run locally:
@@ -29,7 +33,12 @@ Or clone and run locally:
 git clone https://github.com/dl-alexandre/cli-installer-toolkit.git
 cd cli-installer-toolkit
 ./install.sh all
+
+# Add to PATH
+echo 'export PATH="$HOME/.local/bin:$PATH"' >> ~/.zshrc && source ~/.zshrc
 ```
+
+> **⚠️ Note**: Installed CLIs won't work until you add `~/.local/bin` to your PATH (see above).
 
 ## Usage
 
@@ -125,18 +134,32 @@ npx skills add ./cli-installer-toolkit --list
 npx skills add ./cli-installer-toolkit --skill aws-cli --skill jira-cli --skill slack-cli
 ```
 
-### Add to PATH
+## ⚠️ IMPORTANT: Add to PATH
 
-After installation, add `~/.local/bin` to your PATH if not already present:
+**Installed CLIs will NOT work until you add `~/.local/bin` to your PATH.**
 
+### Quick Fix (Copy & Paste)
+
+**For zsh (macOS default, modern Linux):**
 ```bash
-export PATH="$HOME/.local/bin:$PATH"
+echo 'export PATH="$HOME/.local/bin:$PATH"' >> ~/.zshrc && source ~/.zshrc
 ```
 
-Add to your shell rc file (`~/.bashrc`, `~/.zshrc`, etc.) to make it permanent:
-
+**For bash (older Linux/macOS):**
 ```bash
-echo 'export PATH="$HOME/.local/bin:$PATH"' >> ~/.zshrc
+echo 'export PATH="$HOME/.local/bin:$PATH"' >> ~/.bashrc && source ~/.bashrc
+```
+
+**For fish:**
+```bash
+fish_add_path ~/.local/bin
+```
+
+### Verify It Works
+
+After adding to PATH, verify with:
+```bash
+gh --version    # or any tool you installed
 ```
 
 ## Special Notes
