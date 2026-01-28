@@ -49,9 +49,22 @@ detect_arch() {
 ensure_prefix() {
   mkdir -p "${PREFIX}"
   if ! echo ":$PATH:" | grep -q ":${PREFIX}:"; then
-    echo "NOTE: ${PREFIX} is not on your PATH."
-    echo "Add this to your shell rc (e.g. ~/.zshrc or ~/.bashrc):"
+    echo ""
+    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    echo "⚠️  IMPORTANT: ${PREFIX} is not on your PATH"
+    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    echo ""
+    echo "Installed CLIs will NOT work until you add this to your PATH."
+    echo ""
+    echo "Run this command now:"
+    echo ""
+    echo "  echo 'export PATH=\"${PREFIX}:\$PATH\"' >> ~/.zshrc && source ~/.zshrc"
+    echo ""
+    echo "Or manually add to your shell rc file (~/.zshrc or ~/.bashrc):"
     echo "  export PATH=\"${PREFIX}:\$PATH\""
+    echo ""
+    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    echo ""
   fi
 }
 
